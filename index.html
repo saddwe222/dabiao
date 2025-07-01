@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多周累计会员达标率统计表</title>
+    <title>鞭打狗推统计表</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -177,6 +177,22 @@
             background: #c0392b;
         }
         
+        #exportBtn {
+            background: #9b59b6;
+        }
+        
+        #exportBtn:hover {
+            background: #8e44ad;
+        }
+        
+        #importBtn {
+            background: #f39c12;
+        }
+        
+        #importBtn:hover {
+            background: #e67e22;
+        }
+        
         .explanation {
             margin-top: 30px;
             background: rgba(255, 255, 255, 0.95);
@@ -269,6 +285,20 @@
             color: #7f8c8d;
         }
         
+        .save-status {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #27ae60;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .save-status.show {
+            opacity: 1;
+        }
+        
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -287,8 +317,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-chart-line"></i> 多周累计会员达标率统计表</h1>
-            <p class="subtitle">此表格支持多周累计计算，每周的上周会员总数 = 前一周的总会员 + 前一周的达标人数</p>
+            <h1><i class="fas fa-chart-line"></i> 反复鞭打狗推</h1>
+            <p class="subtitle">电棍电量已满，狗皮准备好</p>
         </div>
         
         <div class="card">
@@ -338,19 +368,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td class="week-header">第1周</td>
-                            <td><input type="number" class="week-total" value="127" min="0"></td>
-                            <td><input type="number" class="week-day" data-day="0" value="5" min="0"></td>
-                            <td><input type="number" class="week-day" data-day="1" value="1" min="0"></td>
-                            <td><input type="number" class="week-day" data-day="2" value="1" min="0"></td>
-                            <td><input type="number" class="week-day" data-day="3" value="1" min="0"></td>
-                            <td><input type="number" class="week-day" data-day="4" value="1" min="0"></td>
-                            <td><input type="number" class="week-day" data-day="5" value="1" min="0"></td>
-                            <td><input type="number" class="week-day" data-day="6" value="1" min="0"></td>
-                            <td class="week-total-achieved">11</td>
-                            <td class="week-overall-rate">8.66%</td>
-                        </tr>
+                        <!-- 数据将由JavaScript动态生成 -->
                     </tbody>
                 </table>
             </div>
@@ -362,16 +380,27 @@
                 <button id="resetBtn">
                     <i class="fas fa-redo-alt"></i> 重置为初始值
                 </button>
+                <button id="exportBtn">
+                    <i class="fas fa-file-export"></i> 导出数据
+                </button>
+                <button id="importBtn">
+                    <i class="fas fa-file-import"></i> 导入数据
+                </button>
             </div>
+            
+            <div class="save-status" id="saveStatus">数据已自动保存</div>
         </div>
         
         <div class="explanation">
             <h3><i class="fas fa-info-circle"></i> 使用说明</h3>
             <ul>
                 <li><i class="fas fa-edit"></i> 在表格中直接修改任意数值，系统会自动重新计算</li>
+                <li><i class="fas fa-save"></i> 数据会自动保存到浏览器，关闭页面后不会丢失</li>
                 <li><i class="fas fa-calculator"></i> 每周的"上周会员"会自动根据前一周数据计算得出</li>
                 <li><i class="fas fa-plus"></i> 点击"添加新周数据"按钮可添加新的一周统计</li>
                 <li><i class="fas fa-history"></i> 点击"重置为初始值"可恢复初始数据</li>
+                <li><i class="fas fa-file-export"></i> 点击"导出数据"可将当前数据保存为文件</li>
+                <li><i class="fas fa-file-import"></i> 点击"导入数据"可从文件恢复之前保存的数据</li>
                 <li><i class="fas fa-chart-bar"></i> 达标率计算公式：<strong>达标率 = (当日达标人数 ÷ 上周会员总数) × 100%</strong></li>
                 <li><i class="fas fa-sync-alt"></i> 累计计算公式：<strong>第N周会员数 = 第(N-1)周会员数 + 第(N-1)周达标数</strong></li>
             </ul>
@@ -380,43 +409,162 @@
         <footer>
             <p>多周累计会员达标率统计系统 &copy; 2023 | 数据实时计算更新</p>
         </footer>
+        
+        <!-- 隐藏的文件输入元素用于导入数据 -->
+        <input type="file" id="fileInput" style="display: none;" accept=".json">
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 初始数据
-            let weekCount = 1;
+            // 存储键名
+            const STORAGE_KEY = 'memberAchievementData';
+            
+            // DOM元素
             const tableBody = document.querySelector('#statsTable tbody');
             const totalWeeksElem = document.getElementById('totalWeeks');
+            const saveStatus = document.getElementById('saveStatus');
+            const fileInput = document.getElementById('fileInput');
             
-            // 更新概览区域
-            function updateSummary(row) {
-                if (!row) row = tableBody.lastElementChild;
+            // 初始数据
+            let weekCount = 1;
+            let weeksData = [];
+            
+            // 初始化表格
+            function initTable() {
+                // 尝试从本地存储加载数据
+                const savedData = localStorage.getItem(STORAGE_KEY);
                 
-                const totalInput = row.querySelector('.week-total');
-                const dayInputs = row.querySelectorAll('.week-day');
-                const totalAchievedCell = row.querySelector('.week-total-achieved');
+                if (savedData) {
+                    try {
+                        weeksData = JSON.parse(savedData);
+                        weekCount = weeksData.length;
+                        
+                        // 如果数据为空，创建初始数据
+                        if (weekCount === 0) {
+                            createInitialData();
+                        }
+                    } catch (e) {
+                        console.error('加载保存的数据失败:', e);
+                        createInitialData();
+                    }
+                } else {
+                    createInitialData();
+                }
                 
-                const totalMembers = parseInt(totalInput.value) || 0;
-                let totalAchieved = 0;
+                // 渲染表格
+                renderTable();
                 
-                dayInputs.forEach(input => {
-                    totalAchieved += parseInt(input.value) || 0;
+                // 更新概览
+                updateSummary();
+            }
+            
+            // 创建初始数据
+            function createInitialData() {
+                weeksData = [{
+                    weekNumber: 1,
+                    totalMembers: 0,
+                    days: [0, 0, 0, 0, 0, 0, 0],
+                    totalAchieved: 0,
+                    overallRate: 0.00
+                }];
+                weekCount = 1;
+            }
+            
+            // 渲染表格
+            function renderTable() {
+                tableBody.innerHTML = '';
+                
+                weeksData.forEach((weekData, index) => {
+                    const row = document.createElement('tr');
+                    
+                    // 创建行HTML
+                    row.innerHTML = `
+                        <td class="week-header">第${weekData.weekNumber}周</td>
+                        <td><input type="number" class="week-total" value="${weekData.totalMembers}" min="0"></td>
+                        <td><input type="number" class="week-day" data-day="0" value="${weekData.days[0]}" min="0"></td>
+                        <td><input type="number" class="week-day" data-day="1" value="${weekData.days[1]}" min="0"></td>
+                        <td><input type="number" class="week-day" data-day="2" value="${weekData.days[2]}" min="0"></td>
+                        <td><input type="number" class="week-day" data-day="3" value="${weekData.days[3]}" min="0"></td>
+                        <td><input type="number" class="week-day" data-day="4" value="${weekData.days[4]}" min="0"></td>
+                        <td><input type="number" class="week-day" data-day="5" value="${weekData.days[5]}" min="0"></td>
+                        <td><input type="number" class="week-day" data-day="6" value="${weekData.days[6]}" min="0"></td>
+                        <td class="week-total-achieved">${weekData.totalAchieved}</td>
+                        <td class="week-overall-rate">${weekData.overallRate.toFixed(2)}%</td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                    
+                    // 添加事件监听
+                    addEventListenersToRow(row, index);
+                });
+            }
+            
+            // 保存数据到本地存储
+            function saveData() {
+                // 更新数据模型
+                updateDataModel();
+                
+                // 保存到本地存储
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(weeksData));
+                
+                // 显示保存状态
+                showSaveStatus();
+            }
+            
+            // 显示保存状态
+            function showSaveStatus() {
+                saveStatus.classList.add('show');
+                setTimeout(() => {
+                    saveStatus.classList.remove('show');
+                }, 2000);
+            }
+            
+            // 更新数据模型
+            function updateDataModel() {
+                const rows = tableBody.querySelectorAll('tr');
+                
+                weeksData = [];
+                
+                rows.forEach((row, index) => {
+                    const totalInput = row.querySelector('.week-total');
+                    const dayInputs = row.querySelectorAll('.week-day');
+                    const totalAchievedCell = row.querySelector('.week-total-achieved');
+                    const overallRateCell = row.querySelector('.week-overall-rate');
+                    
+                    const days = [];
+                    dayInputs.forEach(input => {
+                        days.push(parseInt(input.value) || 0);
+                    });
+                    
+                    weeksData.push({
+                        weekNumber: index + 1,
+                        totalMembers: parseInt(totalInput.value) || 0,
+                        days: days,
+                        totalAchieved: parseInt(totalAchievedCell.textContent) || 0,
+                        overallRate: parseFloat(overallRateCell.textContent) || 0
+                    });
                 });
                 
-                // 更新概览区域
-                document.getElementById('currentMembers').textContent = totalMembers;
-                document.getElementById('currentAchieved').textContent = totalAchieved;
+                weekCount = weeksData.length;
+            }
+            
+            // 更新概览区域
+            function updateSummary() {
+                if (weeksData.length === 0) return;
                 
-                const overallRate = totalMembers > 0 ? (totalAchieved / totalMembers * 100) : 0;
-                document.getElementById('currentRate').textContent = overallRate.toFixed(2) + '%';
+                const currentWeek = weeksData[weeksData.length - 1];
+                
+                // 更新概览区域
+                document.getElementById('currentMembers').textContent = currentWeek.totalMembers;
+                document.getElementById('currentAchieved').textContent = currentWeek.totalAchieved;
+                document.getElementById('currentRate').textContent = currentWeek.overallRate.toFixed(2) + '%';
                 
                 // 更新周数
                 totalWeeksElem.textContent = weekCount;
             }
             
             // 计算单周数据
-            function calculateWeek(row) {
+            function calculateWeek(row, weekIndex) {
                 const totalInput = row.querySelector('.week-total');
                 const dayInputs = row.querySelectorAll('.week-day');
                 const totalAchievedCell = row.querySelector('.week-total-achieved');
@@ -434,32 +582,34 @@
                 const overallRate = totalMembers > 0 ? (totalAchieved / totalMembers * 100) : 0;
                 overallRateCell.textContent = overallRate.toFixed(2) + '%';
                 
-                // 更新概览区域
-                updateSummary(row);
+                // 保存数据
+                saveData();
                 
                 // 如果后面有周，更新后续周的会员总数
-                updateSubsequentWeeks(row);
+                updateSubsequentWeeks(weekIndex);
+                
+                // 更新概览区域
+                updateSummary();
             }
             
             // 更新后续周的会员总数
-            function updateSubsequentWeeks(currentRow) {
-                let nextRow = currentRow.nextElementSibling;
-                while (nextRow) {
-                    const prevRow = nextRow.previousElementSibling;
+            function updateSubsequentWeeks(currentWeekIndex) {
+                const rows = tableBody.querySelectorAll('tr');
+                
+                for (let i = currentWeekIndex + 1; i < rows.length; i++) {
+                    const prevRow = rows[i - 1];
                     const prevTotal = parseInt(prevRow.querySelector('.week-total').value) || 0;
                     const prevAchieved = parseInt(prevRow.querySelector('.week-total-achieved').textContent) || 0;
                     
                     const newTotal = prevTotal + prevAchieved;
-                    const totalInput = nextRow.querySelector('.week-total');
+                    const currentRow = rows[i];
+                    const totalInput = currentRow.querySelector('.week-total');
                     
                     // 更新会员总数
                     totalInput.value = newTotal;
                     
                     // 重新计算这一周的数据
-                    calculateWeek(nextRow);
-                    
-                    // 移动到下一行
-                    nextRow = nextRow.nextElementSibling;
+                    calculateWeek(currentRow, i);
                 }
             }
             
@@ -468,9 +618,9 @@
                 weekCount++;
                 
                 // 获取上一周的数据
-                const prevWeek = tableBody.lastElementChild;
-                const prevTotal = parseInt(prevWeek.querySelector('.week-total').value) || 0;
-                const prevAchieved = parseInt(prevWeek.querySelector('.week-total-achieved').textContent) || 0;
+                const prevRow = tableBody.lastElementChild;
+                const prevTotal = parseInt(prevRow.querySelector('.week-total').value) || 0;
+                const prevAchieved = parseInt(prevRow.querySelector('.week-total-achieved').textContent) || 0;
                 
                 // 计算新周的上周会员总数 = 前一周的总会员 + 前一周的达标数
                 const newTotal = prevTotal + prevAchieved;
@@ -494,55 +644,128 @@
                 tableBody.appendChild(newRow);
                 
                 // 添加事件监听
-                addEventListenersToRow(newRow);
+                addEventListenersToRow(newRow, weekCount - 1);
                 
                 // 计算新行数据
-                calculateWeek(newRow);
+                calculateWeek(newRow, weekCount - 1);
             });
             
             // 添加事件监听器到行
-            function addEventListenersToRow(row) {
+            function addEventListenersToRow(row, weekIndex) {
                 const totalInput = row.querySelector('.week-total');
                 const dayInputs = row.querySelectorAll('.week-day');
                 
                 // 添加输入事件
-                totalInput.addEventListener('input', () => calculateWeek(row));
+                totalInput.addEventListener('input', () => {
+                    calculateWeek(row, weekIndex);
+                });
+                
                 dayInputs.forEach(input => {
-                    input.addEventListener('input', () => calculateWeek(row));
+                    input.addEventListener('input', () => {
+                        calculateWeek(row, weekIndex);
+                    });
                 });
             }
             
             // 重置按钮
             document.getElementById('resetBtn').addEventListener('click', function() {
-                // 清空表格（除第一行外）
-                while (tableBody.children.length > 1) {
-                    tableBody.removeChild(tableBody.lastChild);
+                if (confirm('确定要重置所有数据吗？这将清除所有已保存的数据。')) {
+                    // 清空本地存储
+                    localStorage.removeItem(STORAGE_KEY);
+                    
+                    // 重置数据
+                    createInitialData();
+                    
+                    // 重新渲染表格
+                    renderTable();
+                    
+                    // 更新概览
+                    updateSummary();
+                    
+                    // 显示保存状态
+                    showSaveStatus();
                 }
-                
-                // 重置第一行数据
-                const firstRow = tableBody.firstElementChild;
-                const totalInput = firstRow.querySelector('.week-total');
-                const dayInputs = firstRow.querySelectorAll('.week-day');
-                
-                totalInput.value = 127;
-                dayInputs[0].value = 5;
-                for (let i = 1; i < dayInputs.length; i++) {
-                    dayInputs[i].value = 1;
-                }
-                
-                // 重置周计数
-                weekCount = 1;
-                firstRow.querySelector('.week-header').textContent = '第1周';
-                
-                // 重新计算
-                calculateWeek(firstRow);
             });
             
-            // 为初始行添加事件监听
-            addEventListenersToRow(tableBody.firstElementChild);
+            // 导出数据
+            document.getElementById('exportBtn').addEventListener('click', function() {
+                // 确保数据模型是最新的
+                updateDataModel();
+                
+                // 创建导出数据
+                const exportData = {
+                    version: 1,
+                    createdAt: new Date().toISOString(),
+                    weeksData: weeksData
+                };
+                
+                // 创建Blob对象
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                
+                // 创建下载链接
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `会员达标率数据_${new Date().toISOString().slice(0, 10)}.json`;
+                
+                // 触发下载
+                document.body.appendChild(a);
+                a.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
+            });
             
-            // 初始计算
-            calculateWeek(tableBody.firstElementChild);
+            // 导入数据
+            document.getElementById('importBtn').addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // 处理文件选择
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        if (!data.weeksData || !Array.isArray(data.weeksData)) {
+                            throw new Error('无效的数据格式');
+                        }
+                        
+                        if (confirm('确定要导入数据吗？这将覆盖当前所有数据。')) {
+                            weeksData = data.weeksData;
+                            weekCount = weeksData.length;
+                            
+                            // 保存到本地存储
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(weeksData));
+                            
+                            // 重新渲染表格
+                            renderTable();
+                            
+                            // 更新概览
+                            updateSummary();
+                            
+                            // 显示保存状态
+                            showSaveStatus();
+                        }
+                    } catch (error) {
+                        alert('导入数据失败: ' + error.message);
+                    }
+                    
+                    // 重置文件输入
+                    fileInput.value = '';
+                };
+                reader.readAsText(file);
+            });
+            
+            // 初始化表格
+            initTable();
         });
     </script>
 </body>
