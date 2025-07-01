@@ -91,7 +91,7 @@
         }
         
         td {
-            padding: 12px 15px;
+            padding: 8px 10px;
             text-align: center;
             border-bottom: 1px solid #ecf0f1;
         }
@@ -124,6 +124,7 @@
         .rate-cell {
             font-weight: bold;
             color: #27ae60;
+            font-size: 0.9rem;
         }
         
         .low-rate {
@@ -299,6 +300,17 @@
             opacity: 1;
         }
         
+        .day-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .day-rate {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+        
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -310,6 +322,11 @@
             
             .summary {
                 grid-template-columns: 1fr;
+            }
+            
+            input[type="number"] {
+                width: 60px;
+                padding: 5px;
             }
         }
     </style>
@@ -464,6 +481,7 @@
                     weekNumber: 1,
                     totalMembers: 0,
                     days: [0, 0, 0, 0, 0, 0, 0],
+                    dayRates: [0, 0, 0, 0, 0, 0, 0],
                     totalAchieved: 0,
                     overallRate: 0.00
                 }];
@@ -481,13 +499,48 @@
                     row.innerHTML = `
                         <td class="week-header">第${weekData.weekNumber}周</td>
                         <td><input type="number" class="week-total" value="${weekData.totalMembers}" min="0"></td>
-                        <td><input type="number" class="week-day" data-day="0" value="${weekData.days[0]}" min="0"></td>
-                        <td><input type="number" class="week-day" data-day="1" value="${weekData.days[1]}" min="0"></td>
-                        <td><input type="number" class="week-day" data-day="2" value="${weekData.days[2]}" min="0"></td>
-                        <td><input type="number" class="week-day" data-day="3" value="${weekData.days[3]}" min="0"></td>
-                        <td><input type="number" class="week-day" data-day="4" value="${weekData.days[4]}" min="0"></td>
-                        <td><input type="number" class="week-day" data-day="5" value="${weekData.days[5]}" min="0"></td>
-                        <td><input type="number" class="week-day" data-day="6" value="${weekData.days[6]}" min="0"></td>
+                        <td>
+                            <div class="day-container">
+                                <input type="number" class="week-day" data-day="0" value="${weekData.days[0]}" min="0">
+                                <div class="day-rate">${weekData.dayRates[0].toFixed(2)}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="day-container">
+                                <input type="number" class="week-day" data-day="1" value="${weekData.days[1]}" min="0">
+                                <div class="day-rate">${weekData.dayRates[1].toFixed(2)}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="day-container">
+                                <input type="number" class="week-day" data-day="2" value="${weekData.days[2]}" min="0">
+                                <div class="day-rate">${weekData.dayRates[2].toFixed(2)}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="day-container">
+                                <input type="number" class="week-day" data-day="3" value="${weekData.days[3]}" min="0">
+                                <div class="day-rate">${weekData.dayRates[3].toFixed(2)}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="day-container">
+                                <input type="number" class="week-day" data-day="4" value="${weekData.days[4]}" min="0">
+                                <div class="day-rate">${weekData.dayRates[4].toFixed(2)}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="day-container">
+                                <input type="number" class="week-day" data-day="5" value="${weekData.days[5]}" min="0">
+                                <div class="day-rate">${weekData.dayRates[5].toFixed(2)}%</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="day-container">
+                                <input type="number" class="week-day" data-day="6" value="${weekData.days[6]}" min="0">
+                                <div class="day-rate">${weekData.dayRates[6].toFixed(2)}%</div>
+                            </div>
+                        </td>
                         <td class="week-total-achieved">${weekData.totalAchieved}</td>
                         <td class="week-overall-rate">${weekData.overallRate.toFixed(2)}%</td>
                     `;
@@ -528,18 +581,25 @@
                 rows.forEach((row, index) => {
                     const totalInput = row.querySelector('.week-total');
                     const dayInputs = row.querySelectorAll('.week-day');
+                    const dayRates = row.querySelectorAll('.day-rate');
                     const totalAchievedCell = row.querySelector('.week-total-achieved');
                     const overallRateCell = row.querySelector('.week-overall-rate');
                     
                     const days = [];
+                    const rates = [];
                     dayInputs.forEach(input => {
                         days.push(parseInt(input.value) || 0);
+                    });
+                    
+                    dayRates.forEach(rate => {
+                        rates.push(parseFloat(rate.textContent) || 0);
                     });
                     
                     weeksData.push({
                         weekNumber: index + 1,
                         totalMembers: parseInt(totalInput.value) || 0,
                         days: days,
+                        dayRates: rates,
                         totalAchieved: parseInt(totalAchievedCell.textContent) || 0,
                         overallRate: parseFloat(overallRateCell.textContent) || 0
                     });
@@ -567,20 +627,45 @@
             function calculateWeek(row, weekIndex) {
                 const totalInput = row.querySelector('.week-total');
                 const dayInputs = row.querySelectorAll('.week-day');
+                const dayRates = row.querySelectorAll('.day-rate');
                 const totalAchievedCell = row.querySelector('.week-total-achieved');
                 const overallRateCell = row.querySelector('.week-overall-rate');
                 
                 const totalMembers = parseInt(totalInput.value) || 0;
                 let totalAchieved = 0;
                 
-                dayInputs.forEach(input => {
-                    totalAchieved += parseInt(input.value) || 0;
+                // 计算每日达标率和总达标数
+                dayInputs.forEach((input, index) => {
+                    const dayAchieved = parseInt(input.value) || 0;
+                    totalAchieved += dayAchieved;
+                    
+                    // 计算每日达标率
+                    const dayRate = totalMembers > 0 ? (dayAchieved / totalMembers * 100) : 0;
+                    dayRates[index].textContent = dayRate.toFixed(2) + '%';
+                    
+                    // 根据达标率设置颜色
+                    if (dayRate < 5) {
+                        dayRates[index].style.color = '#e74c3c';
+                    } else if (dayRate > 15) {
+                        dayRates[index].style.color = '#27ae60';
+                    } else {
+                        dayRates[index].style.color = '#7f8c8d';
+                    }
                 });
                 
                 // 更新合计达标和整体达标率
                 totalAchievedCell.textContent = totalAchieved;
                 const overallRate = totalMembers > 0 ? (totalAchieved / totalMembers * 100) : 0;
                 overallRateCell.textContent = overallRate.toFixed(2) + '%';
+                
+                // 根据整体达标率设置颜色
+                if (overallRate < 5) {
+                    overallRateCell.style.color = '#e74c3c';
+                } else if (overallRate > 15) {
+                    overallRateCell.style.color = '#27ae60';
+                } else {
+                    overallRateCell.style.color = '#7f8c8d';
+                }
                 
                 // 保存数据
                 saveData();
@@ -630,13 +715,48 @@
                 newRow.innerHTML = `
                     <td class="week-header">第${weekCount}周</td>
                     <td><input type="number" class="week-total" value="${newTotal}" min="0"></td>
-                    <td><input type="number" class="week-day" data-day="0" value="0" min="0"></td>
-                    <td><input type="number" class="week-day" data-day="1" value="0" min="0"></td>
-                    <td><input type="number" class="week-day" data-day="2" value="0" min="0"></td>
-                    <td><input type="number" class="week-day" data-day="3" value="0" min="0"></td>
-                    <td><input type="number" class="week-day" data-day="4" value="0" min="0"></td>
-                    <td><input type="number" class="week-day" data-day="5" value="0" min="0"></td>
-                    <td><input type="number" class="week-day" data-day="6" value="0" min="0"></td>
+                    <td>
+                        <div class="day-container">
+                            <input type="number" class="week-day" data-day="0" value="0" min="0">
+                            <div class="day-rate">0.00%</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="day-container">
+                            <input type="number" class="week-day" data-day="1" value="0" min="0">
+                            <div class="day-rate">0.00%</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="day-container">
+                            <input type="number" class="week-day" data-day="2" value="0" min="0">
+                            <div class="day-rate">0.00%</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="day-container">
+                            <input type="number" class="week-day" data-day="3" value="0" min="0">
+                            <div class="day-rate">0.00%</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="day-container">
+                            <input type="number" class="week-day" data-day="4" value="0" min="0">
+                            <div class="day-rate">0.00%</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="day-container">
+                            <input type="number" class="week-day" data-day="5" value="0" min="0">
+                            <div class="day-rate">0.00%</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="day-container">
+                            <input type="number" class="week-day" data-day="6" value="0" min="0">
+                            <div class="day-rate">0.00%</div>
+                        </div>
+                    </td>
                     <td class="week-total-achieved">0</td>
                     <td class="week-overall-rate">0.00%</td>
                 `;
@@ -741,6 +861,13 @@
                         if (confirm('确定要导入数据吗？这将覆盖当前所有数据。')) {
                             weeksData = data.weeksData;
                             weekCount = weeksData.length;
+                            
+                            // 确保导入的数据有dayRates属性
+                            weeksData.forEach(week => {
+                                if (!week.dayRates) {
+                                    week.dayRates = [0, 0, 0, 0, 0, 0, 0];
+                                }
+                            });
                             
                             // 保存到本地存储
                             localStorage.setItem(STORAGE_KEY, JSON.stringify(weeksData));
