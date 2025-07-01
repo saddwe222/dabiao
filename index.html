@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多周累计会员达标率统计表</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #2980b9;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+        }
+        
+        td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e3f2fd;
+        }
+        
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 1rem;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        input[type="number"]:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+            outline: none;
+        }
+        
+        .rate-cell {
+            font-weight: bold;
+            color: #27ae60;
+        }
+        
+        .low-rate {
+            color: #e74c3c;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            background: #3498db;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 200px;
+            justify-content: center;
+        }
+        
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        #addWeek {
+            background: #27ae60;
+        }
+        
+        #addWeek:hover {
+            background: #219653;
+        }
+        
+        #resetBtn {
+            background: #e74c3c;
+        }
+        
+        #resetBtn:hover {
+            background: #c0392b;
+        }
+        
+        .explanation {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .explanation h3 {
+            color: #2980b9;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .explanation ul {
+            padding-left: 25px;
+            line-height: 1.8;
+        }
+        
+        .explanation li {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .highlight {
+            background-color: #fffacd;
+            font-weight: bold;
+        }
+        
+        .week-header {
+            background: #f1c40f;
+            color: #2c3e50;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .calculation-info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+        }
+        
+        .formula {
+            font-family: monospace;
+            background: #2c3e50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .summary-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .summary-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 5px;
+        }
+        
+        .summary-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-chart-line"></i> 多周累计会员达标率统计表</h1>
+            <p class="subtitle">此表格支持多周累计计算，每周的上周会员总数 = 前一周的总会员 + 前一周的达标人数</p>
+        </div>
+        
+        <div class="card">
+            <h2><i class="fas fa-table"></i> 达标率统计表</h2>
+            
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="summary-value" id="totalWeeks">1</div>
+                    <div class="summary-label">统计周数</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="currentMembers">127</div>
+                    <div class="summary-label">当前周会员总数</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="currentAchieved">11</div>
+                    <div class="summary-label">当前周达标总数</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="currentRate">8.66%</div>
+                    <div class="summary-label">当前周达标率</div>
+                </div>
+            </div>
+            
+            <div class="calculation-info">
+                <p><strong>今天你达标了吗：</strong></p>
+                <p>"目标不是终点，而是路上的灯塔。累了可以休息，但别放弃——因为你比自己想象的更强大！"</p>
+                <p class="formula">进步从不在速度，而在方向。今天的你依然在向前，这就是成长</p>
+                <p>今天的胜利证明你的坚持有意义，每一小步都在铺就未来的巅峰！继续保持，明天会更耀眼！</p>
+            </div>
+            
+            <div class="table-container">
+                <table id="statsTable">
+                    <thead>
+                        <tr>
+                            <th>统计周期</th>
+                            <th>上周会员</th>
+                            <th>周一</th>
+                            <th>周二</th>
+                            <th>周三</th>
+                            <th>周四</th>
+                            <th>周五</th>
+                            <th>周六</th>
+                            <th>周日</th>
+                            <th>合计达标</th>
+                            <th>达标率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="week-header">第1周</td>
+                            <td><input type="number" class="week-total" value="127" min="0"></td>
+                            <td><input type="number" class="week-day" data-day="0" value="5" min="0"></td>
+                            <td><input type="number" class="week-day" data-day="1" value="1" min="0"></td>
+                            <td><input type="number" class="week-day" data-day="2" value="1" min="0"></td>
+                            <td><input type="number" class="week-day" data-day="3" value="1" min="0"></td>
+                            <td><input type="number" class="week-day" data-day="4" value="1" min="0"></td>
+                            <td><input type="number" class="week-day" data-day="5" value="1" min="0"></td>
+                            <td><input type="number" class="week-day" data-day="6" value="1" min="0"></td>
+                            <td class="week-total-achieved">11</td>
+                            <td class="week-overall-rate">8.66%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="controls">
+                <button id="addWeek">
+                    <i class="fas fa-plus-circle"></i> 添加新周数据
+                </button>
+                <button id="resetBtn">
+                    <i class="fas fa-redo-alt"></i> 重置为初始值
+                </button>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h3><i class="fas fa-info-circle"></i> 使用说明</h3>
+            <ul>
+                <li><i class="fas fa-edit"></i> 在表格中直接修改任意数值，系统会自动重新计算</li>
+                <li><i class="fas fa-calculator"></i> 每周的"上周会员"会自动根据前一周数据计算得出</li>
+                <li><i class="fas fa-plus"></i> 点击"添加新周数据"按钮可添加新的一周统计</li>
+                <li><i class="fas fa-history"></i> 点击"重置为初始值"可恢复初始数据</li>
+                <li><i class="fas fa-chart-bar"></i> 达标率计算公式：<strong>达标率 = (当日达标人数 ÷ 上周会员总数) × 100%</strong></li>
+                <li><i class="fas fa-sync-alt"></i> 累计计算公式：<strong>第N周会员数 = 第(N-1)周会员数 + 第(N-1)周达标数</strong></li>
+            </ul>
+        </div>
+        
+        <footer>
+            <p>多周累计会员达标率统计系统 &copy; 2023 | 数据实时计算更新</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始数据
+            let weekCount = 1;
+            const tableBody = document.querySelector('#statsTable tbody');
+            const totalWeeksElem = document.getElementById('totalWeeks');
+            
+            // 更新概览区域
+            function updateSummary(row) {
+                if (!row) row = tableBody.lastElementChild;
+                
+                const totalInput = row.querySelector('.week-total');
+                const dayInputs = row.querySelectorAll('.week-day');
+                const totalAchievedCell = row.querySelector('.week-total-achieved');
+                
+                const totalMembers = parseInt(totalInput.value) || 0;
+                let totalAchieved = 0;
+                
+                dayInputs.forEach(input => {
+                    totalAchieved += parseInt(input.value) || 0;
+                });
+                
+                // 更新概览区域
+                document.getElementById('currentMembers').textContent = totalMembers;
+                document.getElementById('currentAchieved').textContent = totalAchieved;
+                
+                const overallRate = totalMembers > 0 ? (totalAchieved / totalMembers * 100) : 0;
+                document.getElementById('currentRate').textContent = overallRate.toFixed(2) + '%';
+                
+                // 更新周数
+                totalWeeksElem.textContent = weekCount;
+            }
+            
+            // 计算单周数据
+            function calculateWeek(row) {
+                const totalInput = row.querySelector('.week-total');
+                const dayInputs = row.querySelectorAll('.week-day');
+                const totalAchievedCell = row.querySelector('.week-total-achieved');
+                const overallRateCell = row.querySelector('.week-overall-rate');
+                
+                const totalMembers = parseInt(totalInput.value) || 0;
+                let totalAchieved = 0;
+                
+                dayInputs.forEach(input => {
+                    totalAchieved += parseInt(input.value) || 0;
+                });
+                
+                // 更新合计达标和整体达标率
+                totalAchievedCell.textContent = totalAchieved;
+                const overallRate = totalMembers > 0 ? (totalAchieved / totalMembers * 100) : 0;
+                overallRateCell.textContent = overallRate.toFixed(2) + '%';
+                
+                // 更新概览区域
+                updateSummary(row);
+                
+                // 如果后面有周，更新后续周的会员总数
+                updateSubsequentWeeks(row);
+            }
+            
+            // 更新后续周的会员总数
+            function updateSubsequentWeeks(currentRow) {
+                let nextRow = currentRow.nextElementSibling;
+                while (nextRow) {
+                    const prevRow = nextRow.previousElementSibling;
+                    const prevTotal = parseInt(prevRow.querySelector('.week-total').value) || 0;
+                    const prevAchieved = parseInt(prevRow.querySelector('.week-total-achieved').textContent) || 0;
+                    
+                    const newTotal = prevTotal + prevAchieved;
+                    const totalInput = nextRow.querySelector('.week-total');
+                    
+                    // 更新会员总数
+                    totalInput.value = newTotal;
+                    
+                    // 重新计算这一周的数据
+                    calculateWeek(nextRow);
+                    
+                    // 移动到下一行
+                    nextRow = nextRow.nextElementSibling;
+                }
+            }
+            
+            // 添加新周数据
+            document.getElementById('addWeek').addEventListener('click', function() {
+                weekCount++;
+                
+                // 获取上一周的数据
+                const prevWeek = tableBody.lastElementChild;
+                const prevTotal = parseInt(prevWeek.querySelector('.week-total').value) || 0;
+                const prevAchieved = parseInt(prevWeek.querySelector('.week-total-achieved').textContent) || 0;
+                
+                // 计算新周的上周会员总数 = 前一周的总会员 + 前一周的达标数
+                const newTotal = prevTotal + prevAchieved;
+                
+                // 创建新行
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td class="week-header">第${weekCount}周</td>
+                    <td><input type="number" class="week-total" value="${newTotal}" min="0"></td>
+                    <td><input type="number" class="week-day" data-day="0" value="0" min="0"></td>
+                    <td><input type="number" class="week-day" data-day="1" value="0" min="0"></td>
+                    <td><input type="number" class="week-day" data-day="2" value="0" min="0"></td>
+                    <td><input type="number" class="week-day" data-day="3" value="0" min="0"></td>
+                    <td><input type="number" class="week-day" data-day="4" value="0" min="0"></td>
+                    <td><input type="number" class="week-day" data-day="5" value="0" min="0"></td>
+                    <td><input type="number" class="week-day" data-day="6" value="0" min="0"></td>
+                    <td class="week-total-achieved">0</td>
+                    <td class="week-overall-rate">0.00%</td>
+                `;
+                
+                tableBody.appendChild(newRow);
+                
+                // 添加事件监听
+                addEventListenersToRow(newRow);
+                
+                // 计算新行数据
+                calculateWeek(newRow);
+            });
+            
+            // 添加事件监听器到行
+            function addEventListenersToRow(row) {
+                const totalInput = row.querySelector('.week-total');
+                const dayInputs = row.querySelectorAll('.week-day');
+                
+                // 添加输入事件
+                totalInput.addEventListener('input', () => calculateWeek(row));
+                dayInputs.forEach(input => {
+                    input.addEventListener('input', () => calculateWeek(row));
+                });
+            }
+            
+            // 重置按钮
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                // 清空表格（除第一行外）
+                while (tableBody.children.length > 1) {
+                    tableBody.removeChild(tableBody.lastChild);
+                }
+                
+                // 重置第一行数据
+                const firstRow = tableBody.firstElementChild;
+                const totalInput = firstRow.querySelector('.week-total');
+                const dayInputs = firstRow.querySelectorAll('.week-day');
+                
+                totalInput.value = 127;
+                dayInputs[0].value = 5;
+                for (let i = 1; i < dayInputs.length; i++) {
+                    dayInputs[i].value = 1;
+                }
+                
+                // 重置周计数
+                weekCount = 1;
+                firstRow.querySelector('.week-header').textContent = '第1周';
+                
+                // 重新计算
+                calculateWeek(firstRow);
+            });
+            
+            // 为初始行添加事件监听
+            addEventListenersToRow(tableBody.firstElementChild);
+            
+            // 初始计算
+            calculateWeek(tableBody.firstElementChild);
+        });
+    </script>
+</body>
+</html>
